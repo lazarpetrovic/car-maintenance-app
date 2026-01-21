@@ -50,7 +50,7 @@ export default function MechanicDashboard() {
       // ----------------------------
       const vehiclesQuery = query(
         collection(db, "vehicles"),
-        where("mechanicId", "==", currentUser.uid)
+        where("mechanicId", "==", currentUser.uid),
       );
 
       const unsubscribeVehicles = onSnapshot(vehiclesQuery, (snapshot) => {

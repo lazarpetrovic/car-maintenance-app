@@ -8,6 +8,7 @@ export interface Vehicle {
   engineType: string;
   transmission: string;
   drivetrain: string;
+  mileage: number;
   ownerId: string;
   mechanicId: string;
 }
