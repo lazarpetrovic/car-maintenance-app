@@ -1,43 +1,159 @@
 "use client";
 
 import { Vehicle } from "@/types/Vehicle";
+import { Maintenance } from "@/types/Maintenance";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { brandLogos } from "@/utils/brandLogos";
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import AddMaintenanceModal from "@/components/modals/AddMaintenanceModal";
 
 export default function VehiclePreview() {
   const { id } = useParams();
-  console.log(id);
+  const [open, setOpen] = useState(false);
 
   const [selectedRepairVehicle, setSelectedRepairVehicle] =
     useState<Vehicle | null>(null);
+  const [maintenanceRecords, setMaintenanceRecords] = useState<Maintenance[]>(
+    []
+  );
+  const [loading, setLoading] = useState(true);
 
   const router = useRouter();
 
+  // Fetch vehicle data (real-time)
   useEffect(() => {
-    const fetchVehicle = async () => {
-      if (!id) return;
+    if (!id) return;
 
-      const ref = doc(db, "vehicles", id as string);
-      const snap = await getDoc(ref);
+    const vehicleRef = doc(db, "vehicles", id as string);
 
-      if (snap.exists()) {
-        const data = snap.data() as Vehicle;
+    const unsubscribe = onSnapshot(
+      vehicleRef,
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data() as Vehicle;
 
-        setSelectedRepairVehicle({
-          ...data,
-          id: snap.id,
-        });
+          setSelectedRepairVehicle({
+            ...data,
+            id: snap.id,
+          });
+          setLoading(false);
+        }
+      },
+      (error) => {
+        console.error("Error fetching vehicle:", error);
+        setLoading(false);
       }
-    };
+    );
 
-    fetchVehicle();
+    return () => unsubscribe();
   }, [id]);
 
-  if (!selectedRepairVehicle) {
+  // Fetch maintenance records
+  useEffect(() => {
+    if (!id) return;
+
+    console.log("Fetching maintenance for vehicle ID:", id);
+
+    // Try with orderBy first, fallback to simple query if index not created
+    let q = query(
+      collection(db, "maintenance"),
+      where("vehicleId", "==", id),
+      orderBy("date", "desc")
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        console.log("Snapshot received, docs count:", snapshot.docs.length);
+        
+        const records: Maintenance[] = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          console.log("Maintenance doc data:", { id: doc.id, ...data });
+          return {
+            id: doc.id,
+            ...(data as Omit<Maintenance, "id">),
+          } as Maintenance;
+        });
+
+        // Sort by date if orderBy didn't work
+        records.sort((a, b) => {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          return dateB - dateA; // Descending
+        });
+
+        console.log("Processed maintenance records:", records);
+        setMaintenanceRecords(records);
+      },
+      (error) => {
+        console.error("Error fetching maintenance:", error);
+        console.error("Error code:", error.code);
+        console.error("Error message:", error.message);
+        
+        // If it's a missing index error, try without orderBy
+        if (error.code === "failed-precondition") {
+          console.warn(
+            "Index not found. Trying query without orderBy..."
+          );
+          
+          // Fallback query without orderBy
+          const fallbackQ = query(
+            collection(db, "maintenance"),
+            where("vehicleId", "==", id)
+          );
+          
+          onSnapshot(
+            fallbackQ,
+            (snapshot) => {
+              const records: Maintenance[] = snapshot.docs.map((doc) => {
+                const data = doc.data();
+                return {
+                  id: doc.id,
+                  ...(data as Omit<Maintenance, "id">),
+                } as Maintenance;
+              });
+              
+              // Sort manually
+              records.sort((a, b) => {
+                const dateA = new Date(a.date).getTime();
+                const dateB = new Date(b.date).getTime();
+                return dateB - dateA;
+              });
+              
+              setMaintenanceRecords(records);
+            },
+            (fallbackError) => {
+              console.error("Fallback query also failed:", fallbackError);
+            }
+          );
+        }
+      },
+    );
+
+    return () => unsubscribe();
+  }, [id]);
+
+  // Calculate statistics
+  const totalSpent = maintenanceRecords.reduce(
+    (sum, record) => sum + record.totalCost,
+    0,
+  );
+  const lastServiceDate =
+    maintenanceRecords.length > 0 ? maintenanceRecords[0].date : null;
+  const serviceCount = maintenanceRecords.length;
+
+  if (!selectedRepairVehicle || loading) {
     return (
       <div className="min-h-screen bg-[#020617] flex items-center justify-center text-slate-300">
         Loading vehicle...
@@ -120,7 +236,7 @@ export default function VehiclePreview() {
                       Mileage
                     </p>
                     <p className="text-lg font-semibold text-white">
-                      {selectedRepairVehicle.mileage} km
+                      {selectedRepairVehicle.mileage?.toLocaleString() || 0} km
                     </p>
                   </div>
                 </div>
@@ -183,79 +299,129 @@ export default function VehiclePreview() {
                     {selectedRepairVehicle.engineType}
                   </p>
                 </div>
+
+                <div className="pt-4 border-t border-slate-700">
+                  <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">
+                    Maintenance Stats
+                  </p>
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-slate-400 text-sm">Last Service: </span>
+                      <span className="text-zinc-200 font-medium text-sm">
+                        {lastServiceDate
+                          ? new Date(lastServiceDate).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })
+                          : "Never"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 text-sm">Total Spent: </span>
+                      <span className="text-teal-400 font-semibold text-sm">
+                        €{totalSpent.toFixed(2)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 text-sm">Services: </span>
+                      <span className="text-zinc-200 font-medium text-sm">
+                        {serviceCount}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* LATEST MAINTENANCE */}
+            {/* MAINTENANCE HISTORY */}
             <div className="lg:col-span-2 bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-md">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-medium text-zinc-100">
-                  Latest Maintenance
-                </h2>
+                <div>
+                  <h2 className="text-lg font-medium text-zinc-100">
+                    Maintenance History
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {serviceCount} service{serviceCount !== 1 ? "s" : ""} • €
+                    {totalSpent.toFixed(2)} total
+                  </p>
+                </div>
 
-                <button className="bg-teal-500 hover:bg-teal-400 text-slate-900 text-sm font-medium px-4 py-2 rounded-xl transition">
+                <button
+                  onClick={() => setOpen(true)}
+                  className="bg-teal-500 hover:bg-teal-400 text-slate-900 text-sm font-medium px-4 py-2 rounded-xl transition"
+                >
                   + Add Maintenance
                 </button>
               </div>
 
-              {selectedRepairVehicle.latestMaintenance ? (
-                <div className="space-y-4">
-                  <div className="border-l-2 border-teal-500 pl-4">
-                    <p className="text-zinc-200 font-medium capitalize">
-                      {selectedRepairVehicle.latestMaintenance.type}
-                    </p>
+              {open && (
+                <AddMaintenanceModal
+                  vehicle={selectedRepairVehicle}
+                  onClose={() => setOpen(false)}
+                />
+              )}
 
-                    <p className="text-slate-400 text-sm">
-                      {selectedRepairVehicle.latestMaintenance.date} •{" "}
-                      {selectedRepairVehicle.latestMaintenance.mileage} km
-                    </p>
+              {maintenanceRecords.length > 0 ? (
+                <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                  {maintenanceRecords.map((record) => (
+                    <div
+                      key={record.id}
+                      className="bg-slate-800 border border-slate-700 rounded-xl p-4 hover:border-teal-500/50 transition"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-500/10 text-teal-400 capitalize">
+                              {record.type.replace("-", " ")}
+                            </span>
+                            <span className="text-sm text-slate-400">
+                              {new Date(record.date).toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })}
+                            </span>
+                            <span className="text-sm text-slate-400">
+                              • {record.mileage.toLocaleString()} km
+                            </span>
+                          </div>
 
-                    <p className="text-slate-300 text-sm mt-1">
-                      {selectedRepairVehicle.latestMaintenance.description}
-                    </p>
-                  </div>
+                          {record.notes && (
+                            <p className="text-sm text-slate-300 mt-2">
+                              {record.notes}
+                            </p>
+                          )}
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                    <div className="bg-slate-800 rounded-xl p-4">
-                      <p className="text-xs uppercase tracking-wide text-slate-500">
-                        Labor
-                      </p>
-                      <p className="text-zinc-100 font-medium">
-                        €{selectedRepairVehicle.latestMaintenance.laborCost}
-                      </p>
+                          <div className="flex items-center gap-4 mt-3 text-sm">
+                            <div>
+                              <span className="text-slate-500">Labor: </span>
+                              <span className="text-zinc-200 font-medium">
+                                €{record.laborCost.toFixed(2)}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500">Parts: </span>
+                              <span className="text-zinc-200 font-medium">
+                                €{record.partsCost.toFixed(2)}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500">Total: </span>
+                              <span className="text-teal-400 font-semibold">
+                                €{record.totalCost.toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-
-                    <div className="bg-slate-800 rounded-xl p-4">
-                      <p className="text-xs uppercase tracking-wide text-slate-500">
-                        Parts
-                      </p>
-                      <p className="text-zinc-100 font-medium">
-                        €{selectedRepairVehicle.latestMaintenance.partsCost}
-                      </p>
-                    </div>
-
-                    <div className="bg-slate-800 rounded-xl p-4">
-                      <p className="text-xs uppercase tracking-wide text-slate-500">
-                        Total
-                      </p>
-                      <p className="text-zinc-100 font-semibold">
-                        €{selectedRepairVehicle.latestMaintenance.totalCost}
-                      </p>
-                    </div>
-
-                    <div className="bg-slate-800 rounded-xl p-4">
-                      <p className="text-xs uppercase tracking-wide text-slate-500">
-                        Performed by
-                      </p>
-                      <p className="text-zinc-200 font-medium">
-                        {selectedRepairVehicle.latestMaintenance.mechanic}
-                      </p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               ) : (
-                <div className="bg-slate-800 rounded-xl p-6 text-slate-400 text-sm">
-                  No maintenance records yet.
+                <div className="bg-slate-800 rounded-xl p-6 text-slate-400 text-sm text-center">
+                  No maintenance records yet. Add your first maintenance record
+                  to get started.
                 </div>
               )}
             </div>
