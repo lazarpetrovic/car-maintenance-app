@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import type { Vehicle } from "@/types/Vehicle";
 import { brandLogos } from "@/utils/brandLogos";
 import Image from "next/image";
@@ -13,14 +14,25 @@ interface VehicleItemProps {
 
 export default function VehicleItem({ vehicle }: VehicleItemProps) {
   const brand = vehicle.make.trim();
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleDeleteVehicle = async () => {
-    if (!vehicle.id) return;
+  const handleDeleteVehicle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!vehicle.id || isDeleting) return;
+
+    if (!confirm(`Are you sure you want to delete ${vehicle.make} ${vehicle.model}?`)) {
+      return;
+    }
+
+    setIsDeleting(true);
 
     try {
       await deleteDoc(doc(db, "vehicles", vehicle.id));
     } catch (err) {
-      console.log(err);
+      console.error("Error deleting vehicle:", err);
+      alert("Failed to delete vehicle. Please try again.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -85,20 +97,41 @@ export default function VehicleItem({ vehicle }: VehicleItemProps) {
 
         {/* DELETE */}
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDeleteVehicle();
-          }}
-          className="p-2 rounded-xl bg-red-950 hover:bg-red-900 transition-all group cursor-pointer"
+          onClick={handleDeleteVehicle}
+          disabled={isDeleting}
+          className="p-2 rounded-xl bg-red-950 hover:bg-red-900 transition-all group cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           title="Delete vehicle"
         >
-          <Image
-            src={deleteIcon}
-            width={18}
-            height={18}
-            alt="delete vehicle"
-            className="group-hover:scale-110 transition-transform"
-          />
+          {isDeleting ? (
+            <svg
+              className="animate-spin h-[18px] w-[18px] text-red-300"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+          ) : (
+            <Image
+              src={deleteIcon}
+              width={18}
+              height={18}
+              alt="delete vehicle"
+              className="group-hover:scale-110 transition-transform"
+            />
+          )}
         </button>
       </div>
     </div>
