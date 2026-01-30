@@ -4,6 +4,8 @@ import { auth, db } from "@/lib/firebase";
 import { Mechanic } from "@/types/Mechanic";
 import { Vehicle } from "@/types/Vehicle";
 import { onAuthStateChanged, signOut } from "firebase/auth";
+import LoadingScreen from "@/components/LoadingScreen";
+import Spinner from "@/components/Spinner";
 import { collection, doc, onSnapshot, query, where } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -86,16 +88,12 @@ export default function MechanicDashboard() {
   };
 
   if (loading)
-    return (
-      <div className="min-h-screen bg-[#020617] flex items-center justify-center text-slate-300">
-        Loading mechanic dashboard...
-      </div>
-    );
+    return <LoadingScreen message="Loading mechanic dashboard..." />;
 
   if (!mechanic)
     return (
-      <div className="min-h-screen bg-[#020617] flex items-center justify-center text-slate-300">
-        No mechanic data found.
+      <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+        <p className="text-slate-300">No mechanic data found.</p>
       </div>
     );
 
@@ -121,30 +119,11 @@ export default function MechanicDashboard() {
               <button
                 onClick={handleSignOut}
                 disabled={isSigningOut}
-                className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-full text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 min-w-[100px] justify-center"
+                className="bg-red-600 hover:bg-red-700 hover:scale-[1.02] active:scale-[0.98] px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 min-w-[100px] justify-center"
               >
                 {isSigningOut ? (
                   <>
-                    <svg
-                      className="animate-spin h-4 w-4"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
+                    <Spinner size="sm" className="text-white" />
                     Signing out...
                   </>
                 ) : (
@@ -161,13 +140,6 @@ export default function MechanicDashboard() {
             <h2 className="text-2xl font-medium text-white tracking-tight">
               Vehicles In Your Workshop
             </h2>
-
-            <button
-              onClick={() => router.push("/mechanic/add-maintenance")}
-              className="bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white px-6 py-3 rounded-xl shadow-lg font-medium tracking-wide transition"
-            >
-              + Add Maintenance
-            </button>
           </div>
 
           {vehicles.length === 0 ? (
@@ -178,7 +150,7 @@ export default function MechanicDashboard() {
                 <div
                   key={v.id}
                   onClick={() => router.push(`/mechanic/vehicle/${v.id}`)}
-                  className="cursor-pointer bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg hover:-translate-y-2 hover:shadow-2xl transition-all duration-300"
+                  className="cursor-pointer bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg hover:-translate-y-1 hover:shadow-2xl hover:border-teal-500/30 transition-all duration-200"
                 >
                   <h3 className="text-xl font-semibold text-white">
                     {v.make} {v.model}

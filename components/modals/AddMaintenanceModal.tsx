@@ -20,6 +20,7 @@ interface AddMaintenanceModalProps {
     mileage: number;
   };
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
 const OIL_TYPE_FINAL_REGEX = /^[0-9]{1,2}W-[0-9]{2}$/;
@@ -45,6 +46,7 @@ const OIL_BRANDS = [
 export default function AddMaintenanceModal({
   vehicle,
   onClose,
+  onSuccess,
 }: AddMaintenanceModalProps) {
   const today = new Date().toISOString().slice(0, 10);
   const [oilTypeError, setOilTypeError] = useState<string | null>(null);
@@ -211,6 +213,7 @@ export default function AddMaintenanceModal({
       }
 
       onClose();
+      if (onSuccess) onSuccess();
     } catch (err) {
       console.error("Error saving maintenance:", err);
       setError("Failed to save maintenance. Please try again.");
@@ -529,7 +532,7 @@ export default function AddMaintenanceModal({
           <button
             onClick={handleSave}
             disabled={!isFormValid || isSaving}
-            className="bg-teal-500 hover:bg-teal-400 disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 px-6 py-2 rounded-xl font-medium flex items-center gap-2 min-w-[140px] justify-center"
+            className="bg-teal-500 hover:bg-teal-400 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 px-6 py-2 rounded-xl font-medium flex items-center gap-2 min-w-[140px] justify-center transition-transform duration-200"
           >
             {isSaving ? (
               <>

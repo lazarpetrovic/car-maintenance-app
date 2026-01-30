@@ -7,16 +7,19 @@ import deleteIcon from "../assets/delete.png";
 import editIcon from "../assets/edit.png";
 import { deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import Spinner from "./Spinner";
 
 interface VehicleItemProps {
   vehicle: Vehicle;
+  onEdit?: (vehicle: Vehicle) => void;
 }
 
-export default function VehicleItem({ vehicle }: VehicleItemProps) {
+export default function VehicleItem({ vehicle, onEdit }: VehicleItemProps) {
   const brand = vehicle.make.trim();
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDeleteVehicle = async (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     if (!vehicle.id || isDeleting) return;
 
@@ -34,6 +37,11 @@ export default function VehicleItem({ vehicle }: VehicleItemProps) {
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const stopPropagation = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
   };
 
   return (
@@ -59,13 +67,13 @@ export default function VehicleItem({ vehicle }: VehicleItemProps) {
               {vehicle.year}
             </span>
           </div>
-          <p className="text-sm text-slate-500">{vehicle.plateNumber}</p>
+          <p className="text-sm text-slate-500 uppercase">{vehicle.plateNumber}</p>
         </div>
       </div>
 
       {/* DETAILS */}
 
-      <div className="text-sm text-slate-400 space-y-2 leading-relaxed">
+      <div className="text-md text-slate-400 space-y-2 leading-relaxed">
         <p>
           <span className="text-slate-300 font-medium">Engine:</span>{" "}
           {vehicle.engineType}
@@ -74,16 +82,18 @@ export default function VehicleItem({ vehicle }: VehicleItemProps) {
           <span className="text-slate-300 font-medium">Transmission:</span>{" "}
           {vehicle.transmission}
         </p>
-        <p className="text-xs text-slate-500 break-all">
-          <span className="text-slate-400">VIN:</span> {vehicle.vin}
+        <p className="text-md text-slate-500 break-all">
+          <span className="text-slate-400">VIN:</span> <span className="uppercase">{vehicle.vin}</span>
         </p>
       </div>
 
-      {/* ACTIONS */}
-      <div className="flex justify-end gap-3 mt-auto pt-6">
+      {/* ACTIONS - stop propagation so card click doesn't navigate when clicking buttons */}
+      <div className="flex justify-end gap-3 mt-auto pt-6" onClick={stopPropagation}>
         {/* EDIT */}
         <button
-          className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition-all group cursor-pointer"
+          type="button"
+          onClick={() => onEdit?.(vehicle)}
+          className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 hover:scale-105 active:scale-95 transition-transform duration-200 group cursor-pointer"
           title="Edit vehicle"
         >
           <Image
@@ -97,32 +107,14 @@ export default function VehicleItem({ vehicle }: VehicleItemProps) {
 
         {/* DELETE */}
         <button
+          type="button"
           onClick={handleDeleteVehicle}
           disabled={isDeleting}
-          className="p-2 rounded-xl bg-red-950 hover:bg-red-900 transition-all group cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          className="p-2 rounded-xl bg-red-950 hover:bg-red-900 hover:scale-105 active:scale-95 transition-transform duration-200 group cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           title="Delete vehicle"
         >
           {isDeleting ? (
-            <svg
-              className="animate-spin h-[18px] w-[18px] text-red-300"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
+            <Spinner size="sm" className="text-red-300" />
           ) : (
             <Image
               src={deleteIcon}
