@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
+import LoadingScreen from "@/components/LoadingScreen";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -54,13 +55,7 @@ export default function SignupPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#020617]">
-        <div className="text-slate-300 text-lg animate-pulse">
-          Creating account...
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="Creating account..." />;
   }
 
   return (
@@ -88,7 +83,7 @@ export default function SignupPage() {
               <input
                 type="text"
                 placeholder="John"
-                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-600"
+                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500/50 transition-all duration-200"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 required
@@ -102,7 +97,7 @@ export default function SignupPage() {
               <input
                 type="text"
                 placeholder="Doe"
-                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-600"
+                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500/50 transition-all duration-200"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 required
@@ -115,7 +110,7 @@ export default function SignupPage() {
             <input
               type="email"
               placeholder="you@example.com"
-              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-600"
+              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500/50 transition-all duration-200"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -129,7 +124,7 @@ export default function SignupPage() {
             <input
               type="password"
               placeholder="Minimum 6 characters"
-              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-600"
+              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500/50 transition-all duration-200"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -143,7 +138,7 @@ export default function SignupPage() {
             <input
               type="tel"
               placeholder="+1 234 567 890"
-              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-600"
+              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500/50 transition-all duration-200"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
               required
@@ -155,7 +150,7 @@ export default function SignupPage() {
             <input
               type="text"
               placeholder="Street, City"
-              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-600"
+              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500/50 transition-all duration-200"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               required
@@ -164,7 +159,7 @@ export default function SignupPage() {
 
           <button
             type="submit"
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-medium tracking-wide shadow-lg transition-all"
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 hover:scale-[1.02] active:scale-[0.98] text-white font-medium tracking-wide shadow-lg transition-all duration-200"
           >
             Create Account
           </button>

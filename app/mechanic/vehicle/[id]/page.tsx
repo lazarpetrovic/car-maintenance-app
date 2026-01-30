@@ -17,10 +17,12 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import AddMaintenanceModal from "@/components/modals/AddMaintenanceModal";
+import LoadingScreen from "@/components/LoadingScreen";
 
 export default function VehiclePreview() {
   const { id } = useParams();
   const [open, setOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const [selectedRepairVehicle, setSelectedRepairVehicle] =
     useState<Vehicle | null>(null);
@@ -154,12 +156,14 @@ export default function VehiclePreview() {
   const serviceCount = maintenanceRecords.length;
 
   if (!selectedRepairVehicle || loading) {
-    return (
-      <div className="min-h-screen bg-[#020617] flex items-center justify-center text-slate-300">
-        Loading vehicle...
-      </div>
-    );
+    return <LoadingScreen message="Loading vehicle..." />;
   }
+
+  const handleMaintenanceAdded = () => {
+    setOpen(false);
+    setSuccessMessage("Maintenance saved successfully.");
+    setTimeout(() => setSuccessMessage(null), 3000);
+  };
 
   return (
     <div className="min-h-screen bg-[#020617]">
@@ -349,7 +353,7 @@ export default function VehiclePreview() {
 
                 <button
                   onClick={() => setOpen(true)}
-                  className="bg-teal-500 hover:bg-teal-400 text-slate-900 text-sm font-medium px-4 py-2 rounded-xl transition"
+                  className="bg-teal-500 hover:bg-teal-400 hover:scale-[1.02] active:scale-[0.98] text-slate-900 text-sm font-medium px-4 py-2 rounded-xl transition-all duration-200"
                 >
                   + Add Maintenance
                 </button>
@@ -359,7 +363,14 @@ export default function VehiclePreview() {
                 <AddMaintenanceModal
                   vehicle={selectedRepairVehicle}
                   onClose={() => setOpen(false)}
+                  onSuccess={handleMaintenanceAdded}
                 />
+              )}
+
+              {successMessage && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-teal-600 text-white px-6 py-3 rounded-xl shadow-lg font-medium">
+                  {successMessage}
+                </div>
               )}
 
               {maintenanceRecords.length > 0 ? (
@@ -367,7 +378,7 @@ export default function VehiclePreview() {
                   {maintenanceRecords.map((record) => (
                     <div
                       key={record.id}
-                      className="bg-slate-800 border border-slate-700 rounded-xl p-4 hover:border-teal-500/50 transition"
+                      className="bg-slate-800 border border-slate-700 rounded-xl p-4 hover:border-teal-500/50 hover:shadow-lg transition-all duration-200"
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -419,9 +430,14 @@ export default function VehiclePreview() {
                   ))}
                 </div>
               ) : (
-                <div className="bg-slate-800 rounded-xl p-6 text-slate-400 text-sm text-center">
-                  No maintenance records yet. Add your first maintenance record
-                  to get started.
+                <div className="flex flex-col items-center justify-center py-12 px-6 text-center bg-slate-800/50 border border-slate-700 rounded-xl border-dashed">
+                  <div className="w-14 h-14 rounded-full bg-teal-500/10 flex items-center justify-center mb-3">
+                    <svg className="w-7 h-7 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                  </div>
+                  <p className="text-slate-300 font-medium mb-1">No maintenance yet</p>
+                  <p className="text-slate-500 text-sm">Add your first maintenance record to get started.</p>
                 </div>
               )}
             </div>

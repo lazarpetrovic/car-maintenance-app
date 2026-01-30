@@ -4,19 +4,26 @@ import type { User } from "firebase/auth";
 import {
   collection,
   addDoc,
+  doc,
+  updateDoc,
   query,
   where,
   onSnapshot,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Mechanic } from "@/types/Mechanic";
+import type { Vehicle } from "@/types/Vehicle";
 
 type AddVehicleFormProps = {
   user: User;
   onClose: () => void;
+  onSuccess?: () => void;
+  existingVehicle?: Vehicle | null;
 };
 
-export default function AddVehicleForm({ user, onClose }: AddVehicleFormProps) {
+export default function AddVehicleForm({ user, onClose, onSuccess, existingVehicle }: AddVehicleFormProps) {
+  const isEdit = !!existingVehicle;
+
   const [make, setMake] = useState("");
   const [model, setModel] = useState("");
   const [year, setYear] = useState("");
@@ -37,28 +44,58 @@ export default function AddVehicleForm({ user, onClose }: AddVehicleFormProps) {
     setError(null);
 
     try {
-      await addDoc(collection(db, "vehicles"), {
-        ownerId: user.uid,
-        make,
-        model,
-        year: Number(year),
-        vin,
-        plateNumber,
-        engineType,
-        transmission,
-        drivetrain,
-        mechanicId,
-        mileage: 0,
-      });
+      if (isEdit && existingVehicle?.id) {
+        await updateDoc(doc(db, "vehicles", existingVehicle.id), {
+          make,
+          model,
+          year: Number(year),
+          vin,
+          plateNumber,
+          engineType,
+          transmission,
+          drivetrain,
+          mechanicId,
+        });
+      } else {
+        await addDoc(collection(db, "vehicles"), {
+          ownerId: user.uid,
+          make,
+          model,
+          year: Number(year),
+          vin,
+          plateNumber,
+          engineType,
+          transmission,
+          drivetrain,
+          mechanicId,
+          mileage: 0,
+        });
+      }
 
-      onClose();
+      if (onSuccess) onSuccess();
+      else onClose();
     } catch (err) {
-      console.error("Error adding vehicle:", err);
-      setError("Failed to add vehicle. Please try again.");
+      console.error(isEdit ? "Error updating vehicle:" : "Error adding vehicle:", err);
+      setError(isEdit ? "Failed to update vehicle. Please try again." : "Failed to add vehicle. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (existingVehicle) {
+      setMake(existingVehicle.make);
+      setModel(existingVehicle.model);
+      setYear(String(existingVehicle.year));
+      setVin(existingVehicle.vin ?? "");
+      setPlateNumber(existingVehicle.plateNumber ?? "");
+      setEngineType(existingVehicle.engineType ?? "");
+      setTransmission(existingVehicle.transmission ?? "");
+      setDrivetrain(existingVehicle.drivetrain ?? "");
+      setMechanicId(existingVehicle.mechanicId ?? "");
+    }
+  }, [existingVehicle]);
 
   useEffect(() => {
     const q = query(collection(db, "users"), where("role", "==", "mechanic"));
@@ -68,7 +105,6 @@ export default function AddVehicleForm({ user, onClose }: AddVehicleFormProps) {
         id: doc.id,
         ...(doc.data() as Omit<Mechanic, "id">),
       }));
-      console.log(list);
       setMechanics(list);
     });
 
@@ -94,10 +130,10 @@ export default function AddVehicleForm({ user, onClose }: AddVehicleFormProps) {
         >
           <div>
             <h2 className="text-2xl font-medium text-white tracking-tight">
-              Add New Vehicle
+              {isEdit ? "Edit Vehicle" : "Add New Vehicle"}
             </h2>
             <p className="text-sm text-slate-400">
-              Enter the details of your vehicle
+              {isEdit ? "Update the details of your vehicle" : "Enter the details of your vehicle"}
             </p>
           </div>
 
@@ -111,8 +147,8 @@ export default function AddVehicleForm({ user, onClose }: AddVehicleFormProps) {
                   setMake(e.target.value);
                   setModel("");
                 }}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-600"
-              >
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500/50 transition-all duration-200"
+              required>
                 <option value="">Select make...</option>
                 {Object.keys(vehicleData).map((m) => (
                   <option key={m} value={m}>
@@ -128,8 +164,8 @@ export default function AddVehicleForm({ user, onClose }: AddVehicleFormProps) {
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
                 disabled={!make}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-teal-600"
-              >
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500/50 transition-all duration-200"
+              required>
                 <option value="">Select model...</option>
                 {models.map((m) => (
                   <option key={m} value={m}>
@@ -145,8 +181,8 @@ export default function AddVehicleForm({ user, onClose }: AddVehicleFormProps) {
                 type="number"
                 value={year}
                 onChange={(e) => setYear(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-600"
-              />
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500/50 transition-all duration-200"
+                required/>
             </div>
 
             <div>
@@ -156,8 +192,8 @@ export default function AddVehicleForm({ user, onClose }: AddVehicleFormProps) {
               <input
                 value={plateNumber}
                 onChange={(e) => setPlateNumber(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-600"
-              />
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500/50 transition-all duration-200"
+                required/>
             </div>
           </div>
 
@@ -170,8 +206,8 @@ export default function AddVehicleForm({ user, onClose }: AddVehicleFormProps) {
               <select
                 value={engineType}
                 onChange={(e) => setEngineType(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-600"
-              >
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500/50 transition-all duration-200"
+                required>
                 <option value="">Select...</option>
                 <option>Petrol</option>
                 <option>Diesel</option>
@@ -187,8 +223,8 @@ export default function AddVehicleForm({ user, onClose }: AddVehicleFormProps) {
               <select
                 value={transmission}
                 onChange={(e) => setTransmission(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-600"
-              >
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500/50 transition-all duration-200"
+                required>
                 <option value="">Select...</option>
                 <option>Manual</option>
                 <option>Automatic</option>
@@ -202,8 +238,8 @@ export default function AddVehicleForm({ user, onClose }: AddVehicleFormProps) {
               <select
                 value={drivetrain}
                 onChange={(e) => setDrivetrain(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-600"
-              >
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500/50 transition-all duration-200"
+                required>
                 <option value="">Select...</option>
                 <option>FWD</option>
                 <option>RWD</option>
@@ -219,7 +255,8 @@ export default function AddVehicleForm({ user, onClose }: AddVehicleFormProps) {
               <input
                 value={vin}
                 onChange={(e) => setVin(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-600"
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500/50 transition-all duration-200"
+                required
               />
             </div>
             {/*MECHANIC*/}
@@ -230,8 +267,8 @@ export default function AddVehicleForm({ user, onClose }: AddVehicleFormProps) {
               <select
                 value={mechanicId}
                 onChange={(e) => setMechanicId(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-teal-600"
-              >
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500/50 transition-all duration-200"
+                required>
                 <option value="">Select mechanic...</option>
                 {mechanics.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -262,7 +299,7 @@ export default function AddVehicleForm({ user, onClose }: AddVehicleFormProps) {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="bg-teal-500 hover:bg-teal-400 disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 px-6 py-2 rounded-xl font-medium flex items-center gap-2 min-w-[140px] justify-center"
+              className="bg-teal-500 hover:bg-teal-400 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 px-6 py-2 rounded-xl font-medium flex items-center gap-2 min-w-[140px] justify-center transition-transform duration-200"
             >
               {isSubmitting ? (
                 <>
@@ -286,10 +323,10 @@ export default function AddVehicleForm({ user, onClose }: AddVehicleFormProps) {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  Adding...
+                  {isEdit ? "Saving..." : "Adding..."}
                 </>
               ) : (
-                "Add Vehicle"
+                isEdit ? "Save changes" : "Add Vehicle"
               )}
             </button>
           </div>

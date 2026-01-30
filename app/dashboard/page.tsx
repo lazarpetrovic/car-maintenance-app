@@ -7,6 +7,8 @@ import { useEffect, useState } from "react";
 import type { User } from "firebase/auth";
 import AddVehicleForm from "@/components/AddVehicleForm";
 import VehicleList from "@/components/VehicleList";
+import LoadingScreen from "@/components/LoadingScreen";
+import Spinner from "@/components/Spinner";
 import { Vehicle } from "@/types/Vehicle";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 
@@ -15,8 +17,10 @@ export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [onAddingVehicleModal, setOnAddingVehicleModal] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
@@ -61,10 +65,25 @@ export default function Dashboard() {
   };
 
   const onAddingVehicleModalOpen = () => setOnAddingVehicleModal(true);
-  const onAddingVehicleModalClose = () => setOnAddingVehicleModal(false);
+  const onAddingVehicleModalClose = () => {
+    setOnAddingVehicleModal(false);
+  };
+  const onVehicleAdded = () => {
+    setOnAddingVehicleModal(false);
+    setSuccessMessage("Vehicle added successfully.");
+    setTimeout(() => setSuccessMessage(null), 3000);
+  };
+
+  const onEditVehicleOpen = (vehicle: Vehicle) => setEditingVehicle(vehicle);
+  const onEditVehicleClose = () => setEditingVehicle(null);
+  const onVehicleUpdated = () => {
+    setEditingVehicle(null);
+    setSuccessMessage("Vehicle updated successfully.");
+    setTimeout(() => setSuccessMessage(null), 3000);
+  };
 
   if (!user || authLoading)
-    return <p className="text-center text-slate-300">Loading...</p>;
+    return <LoadingScreen message="Loading dashboard..." />;
 
   return (
     <div className="min-h-screen bg-[#020617]">
@@ -85,30 +104,11 @@ export default function Dashboard() {
           <button
             onClick={handleSignOut}
             disabled={isSigningOut}
-            className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-full text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 min-w-[100px] justify-center"
+            className="bg-red-600 hover:bg-red-700 hover:scale-[1.02] active:scale-[0.98] px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 min-w-[100px] justify-center"
           >
             {isSigningOut ? (
               <>
-                <svg
-                  className="animate-spin h-4 w-4"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
+                <Spinner size="sm" className="text-white" />
                 Signing out...
               </>
             ) : (
@@ -119,7 +119,26 @@ export default function Dashboard() {
       </header>
 
       {onAddingVehicleModal && (
-        <AddVehicleForm onClose={onAddingVehicleModalClose} user={user} />
+        <AddVehicleForm
+          onClose={onAddingVehicleModalClose}
+          onSuccess={onVehicleAdded}
+          user={user}
+        />
+      )}
+
+      {editingVehicle && (
+        <AddVehicleForm
+          user={user}
+          onClose={onEditVehicleClose}
+          onSuccess={onVehicleUpdated}
+          existingVehicle={editingVehicle}
+        />
+      )}
+
+      {successMessage && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-teal-600 text-white px-6 py-3 rounded-xl shadow-lg font-medium">
+          {successMessage}
+        </div>
       )}
 
       <div className="h-px bg-slate-800"></div>
@@ -135,7 +154,7 @@ export default function Dashboard() {
 
             <button
               onClick={onAddingVehicleModalOpen}
-              className="bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white px-6 py-3 rounded-xl shadow-lg font-medium tracking-wide flex items-center gap-2"
+              className="bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 hover:scale-[1.02] active:scale-[0.98] text-white px-6 py-3 rounded-xl shadow-lg font-medium tracking-wide flex items-center gap-2 transition-transform duration-200"
             >
               <span className="text-lg font-bold">+</span>
               Add Vehicle
@@ -143,7 +162,11 @@ export default function Dashboard() {
           </div>
 
           {/* VEHICLE GRID */}
-          <VehicleList vehicles={vehicles} />
+          <VehicleList
+            vehicles={vehicles}
+            onAddFirstVehicle={onAddingVehicleModalOpen}
+            onEditVehicle={onEditVehicleOpen}
+          />
         </div>
       </div>
     </div>

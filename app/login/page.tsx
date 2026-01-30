@@ -5,6 +5,7 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import LoadingScreen from "@/components/LoadingScreen";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -37,7 +38,7 @@ export default function LoginPage() {
           router.push("/mechanic/dashboardMechanic");
         } else {
           router.push("/dashboard");
-        }
+        } 
       }
     } catch {
       setError("Invalid email or password.");
@@ -47,13 +48,7 @@ export default function LoginPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#020617]">
-        <div className="text-slate-300 text-lg animate-pulse">
-          Signing in...
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="Signing in..." />;
   }
 
   return (
@@ -78,7 +73,7 @@ export default function LoginPage() {
             <input
               type="email"
               placeholder="you@example.com"
-              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-600"
+              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500/50 transition-all duration-200"
               onChange={(e) => setEmail(e.target.value)}
               value={email}
               required
@@ -92,7 +87,7 @@ export default function LoginPage() {
             <input
               type="password"
               placeholder="••••••••"
-              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-600"
+              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500/50 transition-all duration-200"
               onChange={(e) => setPassword(e.target.value)}
               value={password}
               required
@@ -101,7 +96,7 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-medium tracking-wide shadow-lg transition-all"
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 hover:scale-[1.02] active:scale-[0.98] text-white font-medium tracking-wide shadow-lg transition-all duration-200"
           >
             Sign In
           </button>

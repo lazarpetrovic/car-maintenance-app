@@ -16,6 +16,7 @@ import type { Maintenance } from "@/types/Maintenance";
 import { brandLogos } from "@/utils/brandLogos";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import LoadingScreen from "@/components/LoadingScreen";
 
 export default function VehicleDetailsPage() {
   const params = useParams();
@@ -143,11 +144,7 @@ export default function VehicleDetailsPage() {
   const recentMaintenance = maintenanceRecords.slice(0, 9); // Show last 9 records (3 rows)
 
   if (!vehicle || loading) {
-    return (
-      <div className="min-h-screen bg-[#020617] flex items-center justify-center text-slate-300">
-        Loading vehicle...
-      </div>
-    );
+    return <LoadingScreen message="Loading vehicle..." />;
   }
 
   return (
@@ -156,7 +153,7 @@ export default function VehicleDetailsPage() {
       <header className="px-6 py-4 flex items-center bg-slate-900 border-b border-slate-800">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-slate-400 hover:text-teal-400 transition font-medium"
+          className="flex items-center gap-2 text-slate-400 hover:text-teal-400 transition-colors duration-200 font-medium"
         >
           <span className="text-xl">←</span>
           Back to My Vehicles
@@ -291,7 +288,7 @@ export default function VehicleDetailsPage() {
                 {recentMaintenance.map((record) => (
                   <div
                     key={record.id}
-                    className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-teal-500/50 transition shadow-lg"
+                    className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-teal-500/50 hover:shadow-xl transition-all duration-200 shadow-lg"
                   >
                     <div className="flex items-center gap-2 mb-3 flex-wrap">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-500/10 text-teal-400 capitalize">
@@ -330,8 +327,14 @@ export default function VehicleDetailsPage() {
                 ))}
               </div>
             ) : (
-              <div className="bg-slate-800 rounded-xl p-8 text-slate-400 text-sm text-center">
-                No maintenance records yet
+              <div className="flex flex-col items-center justify-center py-12 px-6 text-center bg-slate-800/50 border border-slate-700 rounded-xl border-dashed">
+                <div className="w-14 h-14 rounded-full bg-teal-500/10 flex items-center justify-center mb-3">
+                  <svg className="w-7 h-7 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                </div>
+                <p className="text-slate-300 font-medium mb-1">No maintenance yet</p>
+                <p className="text-slate-500 text-sm">Records will appear here once added by your mechanic.</p>
               </div>
             )}
           </div>
