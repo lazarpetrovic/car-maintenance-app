@@ -262,6 +262,16 @@ export default function VehicleDetailsPage() {
                   <p className="text-slate-200 font-medium">{serviceCount}</p>
                 </div>
               </div>
+              <div className="mt-6 flex flex-row justify-end gap-4">
+                <button
+                  onClick={() => {
+                    router.push(`/vehicles/${vehicleId}/schedule-service`);
+                  }}
+                  className="bg-teal-500 hover:bg-teal-400 hover:scale-[1.02] active:scale-[0.98] text-slate-900 text-sm font-medium px-4 py-2 rounded-xl transition-all duration-200"
+                >
+                  Schedule Service
+                </button>
+              </div>
             </div>
           </div>
 
